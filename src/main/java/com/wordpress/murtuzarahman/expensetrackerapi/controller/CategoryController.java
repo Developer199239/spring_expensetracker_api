@@ -3,6 +3,7 @@ package com.wordpress.murtuzarahman.expensetrackerapi.controller;
 import com.wordpress.murtuzarahman.expensetrackerapi.dto.CategoryDTO;
 import com.wordpress.murtuzarahman.expensetrackerapi.io.CategoryRequest;
 import com.wordpress.murtuzarahman.expensetrackerapi.io.CategoryResponse;
+import com.wordpress.murtuzarahman.expensetrackerapi.mappers.CategoryMapper;
 import com.wordpress.murtuzarahman.expensetrackerapi.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,21 +16,21 @@ import java.util.stream.Collectors;
 @RequestMapping("/categories")
 @RequiredArgsConstructor
 public class CategoryController {
-
     private final CategoryService categoryService;
+    private final CategoryMapper categoryMapper;
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
     public CategoryResponse createCategory(@RequestBody CategoryRequest categoryRequest) {
-        CategoryDTO categoryDTO = mapToDTO(categoryRequest);
+        CategoryDTO categoryDTO = categoryMapper.mapToCategoryDTO(categoryRequest);
         categoryDTO = categoryService.saveCategory(categoryDTO);
-        return mapToResponse(categoryDTO);
+        return categoryMapper.mapToCategoryResponse(categoryDTO);
     }
 
     @GetMapping
     public List<CategoryResponse> readCategories() {
         List<CategoryDTO> listOfCategories = categoryService.getAllCategories();
-        return listOfCategories.stream().map(categoryDTO -> mapToResponse(categoryDTO)).collect(Collectors.toList());
+        return listOfCategories.stream().map(categoryDTO -> categoryMapper.mapToCategoryResponse(categoryDTO)).collect(Collectors.toList());
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -38,22 +39,4 @@ public class CategoryController {
         categoryService.deleteCategory(categoryId);
     }
 
-    private CategoryResponse mapToResponse(CategoryDTO categoryDTO) {
-        return CategoryResponse.builder()
-                .categoryId(categoryDTO.getCategoryId())
-                .name(categoryDTO.getName())
-                .description(categoryDTO.getDescription())
-                .categoryIcon(categoryDTO.getCategoryIcon())
-                .createdAt(categoryDTO.getCreatedAt())
-                .updatedAt(categoryDTO.getUpdatedAt())
-                .build();
-    }
-
-    private CategoryDTO mapToDTO(CategoryRequest categoryRequest) {
-        return CategoryDTO.builder()
-                .name(categoryRequest.getName())
-                .description(categoryRequest.getDescription())
-                .categoryIcon(categoryRequest.getIcon())
-                .build();
-    }
 }

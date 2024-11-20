@@ -6,6 +6,7 @@ import com.wordpress.murtuzarahman.expensetrackerapi.entity.CategoryEntity;
 import com.wordpress.murtuzarahman.expensetrackerapi.entity.User;
 import com.wordpress.murtuzarahman.expensetrackerapi.exceptions.ItemExistsException;
 import com.wordpress.murtuzarahman.expensetrackerapi.exceptions.ResourceNotFoundException;
+import com.wordpress.murtuzarahman.expensetrackerapi.mappers.CategoryMapper;
 import com.wordpress.murtuzarahman.expensetrackerapi.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,13 +22,15 @@ public class CategoryServiceImpl implements CategoryService{
 
     private final CategoryRepository categoryRepository;
     private final UserService userService;
+    private final CategoryMapper categoryMapper;
 
 
     @Override
     public List<CategoryDTO> getAllCategories() {
         List<CategoryEntity> list = categoryRepository.findByUserId(userService.getLoggedInUser().getId());
-        return list.stream().map(categoryEntity -> mapToDTO(categoryEntity)).collect(Collectors.toList());
+        return list.stream().map(categoryEntity -> categoryMapper.mapToCategoryDTO(categoryEntity)).collect(Collectors.toList());
     }
+
 
     @Override
     public CategoryDTO saveCategory(CategoryDTO categoryDTO) {
@@ -35,10 +38,13 @@ public class CategoryServiceImpl implements CategoryService{
         if (isCategoryPresent) {
             throw new ItemExistsException("Category is already present for the name "+categoryDTO.getName());
         }
-        CategoryEntity newCategory = mapToEntity(categoryDTO);
+        CategoryEntity newCategory = categoryMapper.mapToCategoryEntity(categoryDTO);
+        newCategory.setCategoryId(UUID.randomUUID().toString());
+        newCategory.setUser(userService.getLoggedInUser());
         newCategory = categoryRepository.save(newCategory);
-        return mapToDTO(newCategory);
+        return categoryMapper.mapToCategoryDTO(newCategory);
     }
+
 
     @Override
     public void deleteCategory(String categoryId) {
@@ -49,27 +55,6 @@ public class CategoryServiceImpl implements CategoryService{
         categoryRepository.delete(optionalCategory.get());
     }
 
-    private CategoryEntity mapToEntity(CategoryDTO categoryDTO) {
-        return CategoryEntity.builder()
-                .name(categoryDTO.getName())
-                .description(categoryDTO.getDescription())
-                .categoryIcon(categoryDTO.getCategoryIcon())
-                .categoryId(UUID.randomUUID().toString())
-                .user(userService.getLoggedInUser())
-                .build();
-    }
-
-    private CategoryDTO mapToDTO(CategoryEntity categoryEntity) {
-        return CategoryDTO.builder()
-                .categoryId(categoryEntity.getCategoryId())
-                .name(categoryEntity.getName())
-                .description(categoryEntity.getDescription())
-                .categoryIcon(categoryEntity.getCategoryIcon())
-                .createdAt(categoryEntity.getCreatedAt())
-                .updatedAt(categoryEntity.getUpdatedAt())
-                .user(mapToUserDTO(categoryEntity.getUser()))
-                .build();
-    }
 
     private UserDTO mapToUserDTO(User user) {
         return UserDTO.builder()
